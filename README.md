@@ -1,4 +1,4 @@
-# MAML-Federated-Learning
+# PMFL
 
 ## Results
 1. randomly select 5 diseases from 8 diseases(all of them are about lung) as training tasks of MAML, and use the trained model to train another disease
