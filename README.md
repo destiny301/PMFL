@@ -9,11 +9,11 @@
 4. run 5 times, and show the mean and std in the images
 ----
 
-![image](https://github.com/destiny301/PMFL/tree/main/result/RoundNotIncludeMAML/01Atelectasis.png)
-![image](https://github.com/destiny301/PMFL/tree/main/result/RoundNotIncludeMAML/01Consolidation.png)
-![image](https://github.com/destiny301/PMFL/tree/main/result/RoundNotIncludeMAML/01LungLesion.png)
-![image](https://github.com/destiny301/PMFL/tree/main/result/RoundNotIncludeMAML/01LungOpacity.png)
-![image](https://github.com/destiny301/PMFL/tree/main/result/RoundNotIncludeMAML/01PleuralEffusion.png)
-![image](https://github.com/destiny301/PMFL/tree/main/result/RoundNotIncludeMAML/01PleuralOther.png)
-![iamge](https://github.com/destiny301/PMFL/tree/main/result/RoundNotIncludeMAML/01Pneumonia.png)
-![image](https://github.com/destiny301/PMFL/tree/main/result/RoundNotIncludeMAML/01Pneumothorax.png)
+![image](https://github.com/destiny301/PMFL/blob/main/result/RoundNotIncludeMAML/01Atelectasis.png)
+![image](https://github.com/destiny301/PMFL/blob/main/result/RoundNotIncludeMAML/01Consolidation.png)
+![image](https://github.com/destiny301/PMFL/blob/main/result/RoundNotIncludeMAML/01LungLesion.png)
+![image](https://github.com/destiny301/PMFL/blob/main/result/RoundNotIncludeMAML/01LungOpacity.png)
+![image](https://github.com/destiny301/PMFL/blob/main/result/RoundNotIncludeMAML/01PleuralEffusion.png)
+![image](https://github.com/destiny301/PMFL/blob/main/result/RoundNotIncludeMAML/01PleuralOther.png)
+![iamge](https://github.com/destiny301/PMFL/blob/main/result/RoundNotIncludeMAML/01Pneumonia.png)
+![image](https://github.com/destiny301/PMFL/blob/main/result/RoundNotIncludeMAML/01Pneumothorax.png)
