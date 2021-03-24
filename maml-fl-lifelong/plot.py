@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 from torch import optim
 from torch import nn
 from sklearn.metrics import roc_auc_score
+from sklearn.metrics import average_precision_score
 from model import Model
 from datagenerator import I2B2Dataset
 from CXRFileReader import FederatedReader
@@ -37,9 +38,11 @@ def main(args):
     print("Test Data and Label shape:", xtest.shape, ytest.shape)
 
     times = 5 # running times for average to compute mean and std
-    color = ['k', 'b', 'g'] # plot color
-    label = ['w/o MAML', 'w/ MAML', 'part-freeze MAML'] # plot label
-    auc = np.zeros([3, times, args.epoch_te], dtype = float)
+    numOfAlgo = 4
+    color = ['k', 'b', 'g', 'r'] # plot color
+    label = ['w/o FL', 'w/ FL', 'metaFL', 'PMFL'] # plot label
+    auc = np.zeros([numOfAlgo, times, args.epoch_te], dtype = float)
+    pr = np.zeros([numOfAlgo, times, args.epoch_te], dtype = float)
 
     # train and test, compute test auc
     for t in range(times):
@@ -50,7 +53,7 @@ def main(args):
         criterion = nn.CrossEntropyLoss()
 
         # compare 3 cases: w/o MAML, w/ MAML, part-freeze MAML
-        for i in range(3):
+        for i in range(numOfAlgo):
             print("-----------", label[i], "------------")
             training_loss = 0.0
             for epoch in range(args.epoch_te):
@@ -71,36 +74,61 @@ def main(args):
                     l = [text_length]*(xtest.shape[0])
                     logits_te = model(xtest, torch.tensor(l))
                     pred_q = logits_te.argmax(dim=1)
+                    # print(logits_te)
+                    # print(logits_te.shape)
+                    # print(pred_q)
+                    # print(pred_q.shape)
                     try:
                         auc[i, t, epoch] = roc_auc_score(pred_q.cpu(), ytest.cpu())
+                        pr[i, t, epoch] = average_precision_score(pred_q.cpu(), ytest.cpu())
                     except ValueError:
                         pass
-                print('epoch:', epoch+1, '\ttraining loss:', training_loss/len(db_t), '\ttest ROCAUC:', auc[i, t, epoch])
+                print('epoch:', epoch+1, '\ttraining loss:', training_loss/len(db_t), '\ttest AUC:', auc[i, t, epoch], '\tPr:', pr[i, t, epoch])
                 training_loss = 0.0
 
             if i == 0:
-                PATH = os.path.join(folder, args.disease+'/model/0'+str(t+1)+'maml.pt')
-                model.load_state_dict(torch.load(PATH)) # load MAML model
+                PATH = os.path.join(folder, args.disease+'/model/0'+str(t+1)+'fl.pt')
+                model.load_state_dict(torch.load(PATH)) # load FL model
             elif i == 1:
-                PATH = os.path.join(folder, args.disease+'/model/0'+str(t+1)+'pf.pt')
-                model.load_state_dict(torch.load(PATH)) # load part-freeze model
+                PATH = os.path.join(folder, args.disease+'/model/0'+str(t+1)+'mfl.pt')
+                model.load_state_dict(torch.load(PATH)) # load metaFL model
+            elif i == 2:
+                PATH = os.path.join(folder, args.disease+'/model/0'+str(t+1)+'pmfl.pt')
+                model.load_state_dict(torch.load(PATH)) # load PMFL model
                 
+
+    aucPATH = os.path.join(folder, args.disease+'/result/01'+args.disease+'_auc.npy') # 03--include maml training in each round, 04-hald data
+    np.save(aucPATH, auc)
+    prPATH = os.path.join(folder, args.disease+'/result/01'+args.disease+'_pr.npy') 
+    np.save(prPATH, pr)
 
     x = np.arange(args.epoch_te)+1
     fig, ax = plt.subplots()
-    aucPATH = os.path.join(folder, args.disease+'/result/04'+args.disease+'.npy') # 03--include maml training in each round, 04-hald data
-    np.save(aucPATH, auc)
     with sns.axes_style("darkgrid"):
-        for i in range(3):
+        for i in range(numOfAlgo):
             mean = np.mean(auc[i], 0)
             std = np.std(auc[i], 0)
             ax.plot(x, mean, color[i], label = label[i])
             ax.fill_between(x, mean-std, mean+std, facecolor = color[i], alpha = 0.2)
         ax.legend()
     plt.xlabel('epoch')
-    plt.ylabel('Test data ROCAUC')
-    plt.title(args.disease+'(5silos, half data)')
-    imgPATH = os.path.join(folder, args.disease+'/result/04'+args.disease+'.png')
+    plt.ylabel('Test AUC')
+    plt.title(args.disease+'(5silos)')
+    imgPATH = os.path.join(folder, args.disease+'/result/01'+args.disease+'_auc.png')
+    plt.savefig(imgPATH)
+
+    fig, ax = plt.subplots()
+    with sns.axes_style("darkgrid"):
+        for i in range(numOfAlgo):
+            mean = np.mean(pr[i], 0)
+            std = np.std(pr[i], 0)
+            ax.plot(x, mean, color[i], label = label[i])
+            ax.fill_between(x, mean-std, mean+std, facecolor = color[i], alpha = 0.2)
+        ax.legend()
+    plt.xlabel('epoch')
+    plt.ylabel('Test Precision')
+    plt.title(args.disease+'(5silos)')
+    imgPATH = os.path.join(folder, args.disease+'/result/01'+args.disease+'_pr.png')
     plt.savefig(imgPATH)
     # plt.show()
     
@@ -121,11 +149,12 @@ if __name__ == '__main__':
     argparser.add_argument('--n_silo', type=int, help='num of data sources', default=3)
     argparser.add_argument('--n_batch', type=int, help='num of batches', default=50)
     argparser.add_argument('--n_step', type=int, help='num of all sources ave update', default=20)
-    argparser.add_argument('--ratio', type=float, help='ratio of training data in test silo', default=0.5)
+    argparser.add_argument('--ratio', type=float, help='ratio of training data in test silo', default=0.9)
     # maml or part-freeze maml
-    argparser.add_argument('--algo', type=str, help='choose maml or part-freeze maml', default='pf')
+    argparser.add_argument('--algo', type=str, help='choose Federated Learning(fl), maml-Federated Learning(mfl) \
+                            or Partial Meta-Federated Learning(pmfl)', default='fl')
     argparser.add_argument('--disease', type=str, help='choose target task(Atelectasis, Consolidation, LungLesion,\
-                            LungOpacity, PleuralEffusion, PleuralOther, Pneumonia, Pneumothorax)', default='Atelectasis')
+                            LungOpacity, PleuralEffusion, PleuralOther, Pneumonia, Pneumothorax)', default='Pneumonia')
 
     args = argparser.parse_args()
 

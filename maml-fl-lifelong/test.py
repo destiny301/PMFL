@@ -19,7 +19,7 @@ import os
 
 def main(args):
     folder = '../../Dataset/mimic'
-    PATH = os.path.join(folder, args.disease+'/model/05'+args.algo+'.pt')
+    PATH = os.path.join(folder, args.disease+'/model/01'+args.algo+'.pt')
 
     print(args)
     # pylint: disable=no-member
@@ -83,7 +83,7 @@ def main(args):
             l = [text_length]*(xtr.shape[0])
             optimizer.zero_grad()
             # pylint: disable=not-callable
-            logits, _ = testModel(xtr, torch.tensor(l))
+            logits = testModel(xtr, torch.tensor(l))
             loss = criterion(logits, ytr)
             loss.backward()
             optimizer.step()
@@ -100,7 +100,7 @@ def main(args):
     with torch.no_grad():
         l = [text_length]*(xtest.shape[0])
         # pylint: disable=not-callable
-        logits_te, _ = testModel(xtest, torch.tensor(l))
+        logits_te = testModel(xtest, torch.tensor(l))
         pred_q = logits_te.argmax(dim=1)
         try:
             auc = roc_auc_score(pred_q.cpu(), ytest.cpu())
@@ -131,7 +131,7 @@ if __name__ == '__main__':
     argparser.add_argument('--algo', type=str, help='choose Federated Learning(fl), maml-Federated Learning(mfl) \
                             or Partial Meta-Federated Learning(pmfl)', default='fl')
     argparser.add_argument('--disease', type=str, help='choose target task(Atelectasis, Consolidation, LungLesion,\
-                            LungOpacity, PleuralEffusion, PleuralOther, Pneumonia, Pneumothorax)', default='Consolidation')
+                            LungOpacity, PleuralEffusion, PleuralOther, Pneumonia, Pneumothorax)', default='LungOpacity')
     args = argparser.parse_args()
 
     main(args)
