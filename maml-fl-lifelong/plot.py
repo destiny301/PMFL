@@ -34,13 +34,13 @@ def main(args):
     # generate dataset for model training
     db_test = I2B2Dataset(xte, yte, ratio = args.ratio, mode = 'test') # for test task, choose the latter half for test data, and ratio for training data
     xtest, ytest = db_test.get_testdata()
-    xtest, ytest = torch.from_numpy(xtest).to(device), torch.from_numpy(ytest).to(device)
+    xtest, ytest = torch.from_numpy(xtest).to(device), torch.from_numpy(ytest).float()
     print("Test Data and Label shape:", xtest.shape, ytest.shape)
 
-    times = 5 # running times for average to compute mean and std
+    times = 25 # running times for average to compute mean and std
     numOfAlgo = 4
     color = ['k', 'b', 'g', 'r'] # plot color
-    label = ['w/o FL', 'w/ FL', 'metaFL', 'PMFL'] # plot label
+    label = ['w/o FL', 'w/ FL', 'MetaFL', 'PMFL'] # plot label
     auc = np.zeros([numOfAlgo, times, args.epoch_te], dtype = float)
     pr = np.zeros([numOfAlgo, times, args.epoch_te], dtype = float)
 
@@ -50,7 +50,7 @@ def main(args):
         # each round, initize a new model
         model = Model(lib_sz, args.n_way).to(device)
         optimizer = optim.Adam(model.parameters(), lr=args.meta_lr)
-        criterion = nn.CrossEntropyLoss()
+        criterion = nn.BCELoss()
 
         # compare 3 cases: w/o MAML, w/ MAML, part-freeze MAML
         for i in range(numOfAlgo):
@@ -59,11 +59,11 @@ def main(args):
             for epoch in range(args.epoch_te):
                 db_t = DataLoader(db_test, args.k_te, shuffle=True, num_workers=1, pin_memory=True) # getitem() only return xtr(training) data
                 for xtr, ytr in db_t:
-                    xtr, ytr = xtr.to(device), ytr.to(device)
+                    xtr, ytr = xtr.to(device), ytr.float().to(device)
                     l = [text_length]*(xtr.shape[0])
                     optimizer.zero_grad()
                     # pylint: disable=not-callable
-                    logits = model(xtr, torch.tensor(l))
+                    logits = model(xtr, torch.tensor(l)).squeeze()
                     loss = criterion(logits, ytr)
                     loss.backward()
                     optimizer.step()
@@ -72,36 +72,33 @@ def main(args):
                 # compute test auc
                 with torch.no_grad():
                     l = [text_length]*(xtest.shape[0])
-                    logits_te = model(xtest, torch.tensor(l))
-                    pred_q = logits_te.argmax(dim=1)
-                    # print(logits_te)
-                    # print(logits_te.shape)
-                    # print(pred_q)
-                    # print(pred_q.shape)
+                    logits_te = model(xtest, torch.tensor(l)).squeeze()
+                    # pred_q = logits_te.argmax(dim=1)
+                    
                     try:
-                        auc[i, t, epoch] = roc_auc_score(pred_q.cpu(), ytest.cpu())
-                        pr[i, t, epoch] = average_precision_score(pred_q.cpu(), ytest.cpu())
+                        auc[i, t, epoch] = roc_auc_score(ytest, logits_te.cpu())
+                        pr[i, t, epoch] = average_precision_score(ytest, logits_te.cpu())
                     except ValueError:
                         pass
                 print('epoch:', epoch+1, '\ttraining loss:', training_loss/len(db_t), '\ttest AUC:', auc[i, t, epoch], '\tPr:', pr[i, t, epoch])
                 training_loss = 0.0
 
             if i == 0:
-                PATH = os.path.join(folder, args.disease+'/model/0'+str(t+1)+'fl.pt')
+                PATH = os.path.join(folder, 'PMFL/'+args.disease+'/model/0'+str(t%5+1)+'fl.pt')
                 model.load_state_dict(torch.load(PATH)) # load FL model
             elif i == 1:
-                PATH = os.path.join(folder, args.disease+'/model/0'+str(t+1)+'mfl.pt')
+                PATH = os.path.join(folder, 'PMFL/'+args.disease+'/model/0'+str(t%5+1)+'mfl.pt')
                 model.load_state_dict(torch.load(PATH)) # load metaFL model
             elif i == 2:
-                PATH = os.path.join(folder, args.disease+'/model/0'+str(t+1)+'pmfl.pt')
+                PATH = os.path.join(folder, 'PMFL/'+args.disease+'/model/0'+str(t%5+1)+'pmfl.pt')
                 model.load_state_dict(torch.load(PATH)) # load PMFL model
                 
 
-    aucPATH = os.path.join(folder, args.disease+'/result/01'+args.disease+'_auc.npy') # 03--include maml training in each round, 04-hald data
+    aucPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/02'+args.disease+'_rocauc.npy') # 03--include maml training in each round, 04-hald data
     np.save(aucPATH, auc)
-    prPATH = os.path.join(folder, args.disease+'/result/01'+args.disease+'_pr.npy') 
+    prPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/02'+args.disease+'_prauc.npy') 
     np.save(prPATH, pr)
-
+    # algo = ['w/o FL', 'w/ FL', 'MetaFL', 'PMFL'] 
     x = np.arange(args.epoch_te)+1
     fig, ax = plt.subplots()
     with sns.axes_style("darkgrid"):
@@ -113,8 +110,8 @@ def main(args):
         ax.legend()
     plt.xlabel('epoch')
     plt.ylabel('Test AUC')
-    plt.title(args.disease+'(5silos)')
-    imgPATH = os.path.join(folder, args.disease+'/result/01'+args.disease+'_auc.png')
+    plt.title(args.disease) # 5 silos
+    imgPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/02'+args.disease+'_rocauc.png')
     plt.savefig(imgPATH)
 
     fig, ax = plt.subplots()
@@ -127,8 +124,8 @@ def main(args):
         ax.legend()
     plt.xlabel('epoch')
     plt.ylabel('Test Precision')
-    plt.title(args.disease+'(5silos)')
-    imgPATH = os.path.join(folder, args.disease+'/result/01'+args.disease+'_pr.png')
+    plt.title(args.disease) # 5 silos
+    imgPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/02'+args.disease+'_prauc.png')
     plt.savefig(imgPATH)
     # plt.show()
     
@@ -137,7 +134,7 @@ if __name__ == '__main__':
 
     argparser = argparse.ArgumentParser()
     # argparser.add_argument('--epoch', type=int, help='epoch number', default=10)
-    argparser.add_argument('--epoch_te', type=int, help='epoch number for test task', default=15)
+    argparser.add_argument('--epoch_te', type=int, help='epoch number for test task', default=10)
 
     argparser.add_argument('--n_way', type=int, help='n way', default=2)
     # argparser.add_argument('--k_tr', type=int, help='k shot for train set', default=10)
@@ -154,7 +151,7 @@ if __name__ == '__main__':
     argparser.add_argument('--algo', type=str, help='choose Federated Learning(fl), maml-Federated Learning(mfl) \
                             or Partial Meta-Federated Learning(pmfl)', default='fl')
     argparser.add_argument('--disease', type=str, help='choose target task(Atelectasis, Consolidation, LungLesion,\
-                            LungOpacity, PleuralEffusion, PleuralOther, Pneumonia, Pneumothorax)', default='Pneumonia')
+                            LungOpacity, PleuralEffusion, PleuralOther, Pneumonia, Pneumothorax)', default='Consolidation')
 
     args = argparser.parse_args()
 

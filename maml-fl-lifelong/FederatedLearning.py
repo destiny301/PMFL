@@ -29,7 +29,7 @@ class FL(nn.Module):
             self.subp.append(self.para)
 
         self.meta_optim = optim.Adam(self.net.parameters(), lr=self.meta_lr)
-        self.criterion = nn.CrossEntropyLoss()
+        self.criterion = nn.BCELoss()
 
         self.weight = [1]*self.task_num
         self.n_batch = args.n_batch
@@ -88,7 +88,7 @@ class FL(nn.Module):
             self.loadParameters(self.subp[i], self.net) # in fact, need to load server model, and here transfer the server model to clients
             
             # pylint: disable=no-member
-            x, y = torch.from_numpy(np.array(xtr[i])).to(self.device), torch.from_numpy(np.array(ytr[i])).to(self.device)
+            x, y = torch.from_numpy(np.array(xtr[i])).to(self.device), torch.from_numpy(np.array(ytr[i])).float().to(self.device)
             xtrain = x[:int((list(x.size())[0]/2)), :]
             xtest = x[int((list(x.size())[0]/2)):, :]
             ytrain = y[:int((list(x.size())[0]/2))]
@@ -96,7 +96,7 @@ class FL(nn.Module):
             l = [self.text_length]*(xtrain.shape[0])
             # 1. run the i-th task and compute loss for k=0
             # pylint: disable=not-callable
-            logits = self.net(xtrain, torch.tensor(l))
+            logits = self.net(xtrain, torch.tensor(l)).squeeze()
             loss = self.criterion(logits, ytrain)
             para = self.getParameters()
             grad = torch.autograd.grad(loss, para)
@@ -105,7 +105,7 @@ class FL(nn.Module):
 
             with torch.no_grad():
                 l = [self.text_length]*(xtest.shape[0])
-                logits_q = self.net(xtest, torch.tensor(l))
+                logits_q = self.net(xtest, torch.tensor(l)).squeeze()
                 loss_q = self.criterion(logits_q, ytest)
                 losses_te[0] += loss_q*self.weight[i]
 
@@ -113,14 +113,14 @@ class FL(nn.Module):
             with torch.no_grad():
                 self.loadParameters(fast_weights, self.net)
                 l = [self.text_length]*(xtest.shape[0])
-                logits_q = self.net(xtest, torch.tensor(l))
+                logits_q = self.net(xtest, torch.tensor(l)).squeeze()
                 loss_q = self.criterion(logits_q, ytest)
                 losses_te[1] += loss_q*self.weight[i]
 
             for k in range(1, self.epoch):
                 # 1. run the i-th task and compute loss for k=1~K-1                
                 l = [self.text_length]*(xtrain.shape[0])
-                logits = self.net(xtrain, torch.tensor(l))
+                logits = self.net(xtrain, torch.tensor(l)).squeeze()
                 loss = self.criterion(logits, ytrain)
                 # 2. compute grad on theta_pi
                 fast_weights = self.getParameters()
@@ -130,7 +130,7 @@ class FL(nn.Module):
 
                 self.loadParameters(fast_weights, self.net)
                 l = [self.text_length]*(xtest.shape[0])
-                logits_q = self.net(xtest, torch.tensor(l))
+                logits_q = self.net(xtest, torch.tensor(l)).squeeze()
                 # loss_q will be overwritten and just keep the loss_q on last update step.
                 loss_q = self.criterion(logits_q, ytest)
                 losses_te[k + 1] += loss_q*self.weight[i]

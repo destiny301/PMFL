@@ -15,10 +15,10 @@ class I2B2Dataset(Dataset):
     def __init__(self, x, y, ratio, mode = 'train'):
         if mode == 'test':
             self.tensor = np.array(x).astype(np.int64)
-            self.label = np.array(y).astype(np.int64)
+            self.label = np.array(y).astype(np.float)
             self.xtr = self.tensor[:int(self.tensor.shape[0]*ratio),:]
             self.ytr = self.label[:int(self.label.shape[0]*ratio)]
-            self.xte = self.tensor[int(self.tensor.shape[0]*ratio):,:] # memory 0.8-->0.93
+            self.xte = self.tensor[int(self.tensor.shape[0]*ratio):,:] # memory Ath-->0.95
             self.yte = self.label[int(self.label.shape[0]*ratio):]
             print("Test ds training shape:", self.xtr.shape, self.ytr.shape)
         else:

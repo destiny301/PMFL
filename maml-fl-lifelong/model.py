@@ -9,7 +9,8 @@ class Model(nn.Module):
         super(Model, self).__init__()
         self.embedding = nn.Embedding(lib_sz+1, 128)
         self.lstm = nn.LSTM(128, 32, bidirectional=True)
-        self.fc = nn.Linear(64, 2)
+        self.fc = nn.Linear(64, 1)
+        self.act = nn.Sigmoid()
     
     def forward(self, x, text_lengths):
         x = self.embedding(x)
@@ -24,4 +25,5 @@ class Model(nn.Module):
         # hidden = [batch size, hid dim * num directions]
 
         x = self.fc(hidden)
+        x = self.act(x)
         return x

@@ -19,7 +19,7 @@ import os
 
 def main(args):
     folder = '../../Dataset/mimic'
-    PATH = os.path.join(folder, args.disease+'/model/01'+args.algo+'.pt')
+    PATH = os.path.join(folder, 'PMFL/'+args.disease+'/model/'+args.time+args.algo+'.pt')
 
     print(args)
     # pylint: disable=no-member
@@ -51,7 +51,7 @@ def main(args):
         trainModel = PMFL(args, lib_sz, device, text_length).to(device)
 
     optimizer = optim.Adam(testModel.parameters(), lr=args.meta_lr)
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.BCELoss()
 
     tmp = filter(lambda x: x.requires_grad, trainModel.parameters())
     num = sum(map(lambda x: np.prod(x.shape), tmp))
@@ -79,11 +79,11 @@ def main(args):
     for epoch in range(args.epoch_te):
         db_t = DataLoader(db_test, args.k_te, shuffle=True, num_workers=1, pin_memory=True)
         for xtr, ytr in db_t:
-            xtr, ytr = xtr.to(device), ytr.to(device)
+            xtr, ytr = xtr.to(device), ytr.float().to(device)
             l = [text_length]*(xtr.shape[0])
             optimizer.zero_grad()
             # pylint: disable=not-callable
-            logits = testModel(xtr, torch.tensor(l))
+            logits = testModel(xtr, torch.tensor(l)).squeeze()
             loss = criterion(logits, ytr)
             loss.backward()
             optimizer.step()
@@ -94,16 +94,16 @@ def main(args):
 
     print("============Test New Task=============")
     xtest, ytest = db_test.get_testdata()
-    xtest, ytest = torch.from_numpy(xtest).to(device), torch.from_numpy(ytest).to(device)
+    xtest, ytest = torch.from_numpy(xtest).to(device), torch.from_numpy(ytest).float()
     print("Test Data and Label shape:", xtest.shape, ytest.shape)
     auc = 0.0
     with torch.no_grad():
         l = [text_length]*(xtest.shape[0])
         # pylint: disable=not-callable
-        logits_te = testModel(xtest, torch.tensor(l))
-        pred_q = logits_te.argmax(dim=1)
+        logits_te = testModel(xtest, torch.tensor(l)).squeeze()
+        # pred_q = logits_te.argmax(dim=1)
         try:
-            auc = roc_auc_score(pred_q.cpu(), ytest.cpu())
+            auc = roc_auc_score(ytest, logits_te.cpu())
         except ValueError:
             pass
     print('Test ROC AUC Score:', auc)
@@ -129,9 +129,10 @@ if __name__ == '__main__':
     argparser.add_argument('--ratio', type=float, help='ratio of training data in test silo', default=0.9)
     # maml or part-freeze maml
     argparser.add_argument('--algo', type=str, help='choose Federated Learning(fl), maml-Federated Learning(mfl) \
-                            or Partial Meta-Federated Learning(pmfl)', default='fl')
+                            or Partial Meta-Federated Learning(pmfl)', default='pmfl')
     argparser.add_argument('--disease', type=str, help='choose target task(Atelectasis, Consolidation, LungLesion,\
-                            LungOpacity, PleuralEffusion, PleuralOther, Pneumonia, Pneumothorax)', default='LungOpacity')
+                            LungOpacity, PleuralEffusion, PleuralOther, Pneumonia, Pneumothorax)', default='Consolidation')
+    argparser.add_argument('--time', type=str, help='number of times', default='01')
     args = argparser.parse_args()
 
     main(args)
