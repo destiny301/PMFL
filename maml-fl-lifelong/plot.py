@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from torch import optim
 from torch import nn
 from sklearn.metrics import roc_auc_score
-from sklearn.metrics import average_precision_score
+from sklearn.metrics import average_precision_score, precision_recall_curve
 from model import Model
 from datagenerator import I2B2Dataset
 from CXRFileReader import FederatedReader
@@ -43,6 +43,9 @@ def main(args):
     label = ['w/o FL', 'w/ FL', 'MetaFL', 'PMFL'] # plot label
     auc = np.zeros([numOfAlgo, times, args.epoch_te], dtype = float)
     pr = np.zeros([numOfAlgo, times, args.epoch_te], dtype = float)
+    f1 = np.zeros([numOfAlgo, times, args.epoch_te], dtype = float)
+    p = np.zeros([numOfAlgo, times, args.epoch_te], dtype = float)
+    r = np.zeros([numOfAlgo, times, args.epoch_te], dtype = float)
 
     # train and test, compute test auc
     for t in range(times):
@@ -79,9 +82,18 @@ def main(args):
                     try:
                         auc[i, t, epoch] = roc_auc_score(ytest, logits_te.cpu())
                         pr[i, t, epoch] = average_precision_score(ytest, logits_te.cpu())
+                        # fpr, tpr, th = roc_curve(ytest, logits_te.cpu())
+                        precision, recall, thresholds = precision_recall_curve(ytest, logits_te.cpu())
+                        f = np.multiply(precision, recall)
+                        f= np.divide(2*f, (precision+recall))
+                        optimal_idx = np.argmax(f)
+                        f1[i, t, epoch] = f[optimal_idx]
+                        p[i, t, epoch] = precision[optimal_idx]
+                        r[i, t, epoch] = recall[optimal_idx]
                     except ValueError:
                         pass
-                print('epoch:', epoch+1, '\ttraining loss:', training_loss/len(db_t), '\ttest AUC:', auc[i, t, epoch], '\tPr:', pr[i, t, epoch])
+                print('epoch:', epoch+1, '\ttraining loss:', training_loss/len(db_t), '\ttest AUC:', auc[i, t, epoch],
+                        '\tPr:', pr[i, t, epoch], '\tF1:', f1[i, t, epoch])
                 training_loss = 0.0
 
             if i == 0:
@@ -95,10 +107,16 @@ def main(args):
                 model.load_state_dict(torch.load(PATH)) # load PMFL model
                 
 
-    aucPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/01'+args.disease+'_rocauc.npy') # 03--include maml training in each round, 04-hald data
+    aucPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/05'+args.disease+'_rocauc.npy') # 03--include maml training in each round, 04-hald data
     np.save(aucPATH, auc)
-    prPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/01'+args.disease+'_prauc.npy') 
+    prPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/05'+args.disease+'_prauc.npy') 
     np.save(prPATH, pr)
+    f1PATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/05'+args.disease+'_f1.npy') 
+    np.save(f1PATH, f1)
+    pPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/05'+args.disease+'_precision.npy') 
+    np.save(pPATH, p)
+    rPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/05'+args.disease+'_recall.npy') 
+    np.save(rPATH, r)
     # algo = ['w/o FL', 'w/ FL', 'MetaFL', 'PMFL'] 
     x = np.arange(args.epoch_te)+1
     fig, ax = plt.subplots()
@@ -112,22 +130,22 @@ def main(args):
     plt.xlabel('epoch')
     plt.ylabel('Test AUC')
     plt.title(args.disease) # 5 silos
-    imgPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/01'+args.disease+'_rocauc.png')
+    imgPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/05'+args.disease+'_rocauc.png')
     plt.savefig(imgPATH)
 
-    fig, ax = plt.subplots()
-    with sns.axes_style("darkgrid"):
-        for i in range(numOfAlgo):
-            mean = np.mean(pr[i], 0)
-            std = np.std(pr[i], 0)
-            ax.plot(x, mean, color[i], label = label[i])
-            ax.fill_between(x, mean-std, mean+std, facecolor = color[i], alpha = 0.2)
-        ax.legend()
-    plt.xlabel('epoch')
-    plt.ylabel('Test Precision')
-    plt.title(args.disease) # 5 silos
-    imgPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/01'+args.disease+'_prauc.png')
-    plt.savefig(imgPATH)
+    # fig, ax = plt.subplots()
+    # with sns.axes_style("darkgrid"):
+    #     for i in range(numOfAlgo):
+    #         mean = np.mean(pr[i], 0)
+    #         std = np.std(pr[i], 0)
+    #         ax.plot(x, mean, color[i], label = label[i])
+    #         ax.fill_between(x, mean-std, mean+std, facecolor = color[i], alpha = 0.2)
+    #     ax.legend()
+    # plt.xlabel('epoch')
+    # plt.ylabel('Test Precision')
+    # plt.title(args.disease) # 5 silos
+    # imgPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/01'+args.disease+'_prauc.png')
+    # plt.savefig(imgPATH)
     # plt.show()
     
 
@@ -152,7 +170,7 @@ if __name__ == '__main__':
     argparser.add_argument('--algo', type=str, help='choose Federated Learning(fl), maml-Federated Learning(mfl) \
                             or Partial Meta-Federated Learning(pmfl)', default='fl')
     argparser.add_argument('--disease', type=str, help='choose target task(Atelectasis, Consolidation, LungLesion,\
-                            LungOpacity, PleuralEffusion, PleuralOther, Pneumonia, Pneumothorax)', default='Pneumothorax')
+                            LungOpacity, PleuralEffusion, PleuralOther, Pneumonia, Pneumothorax)', default='LungOpacity')
 
     args = argparser.parse_args()
 
