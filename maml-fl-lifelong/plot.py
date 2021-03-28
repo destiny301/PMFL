@@ -30,14 +30,14 @@ def main(args):
     text_length = dataset.get_text_length()
     # transform data into silos(train and test task)
     xte, yte = dataset.getTest(args.disease)
-  
+
     # generate dataset for model training
     db_test = I2B2Dataset(xte, yte, ratio = args.ratio, mode = 'test') # for test task, choose the latter half for test data, and ratio for training data
     xtest, ytest = db_test.get_testdata()
     xtest, ytest = torch.from_numpy(xtest).to(device), torch.from_numpy(ytest).float()
     print("Test Data and Label shape:", xtest.shape, ytest.shape)
 
-    times = 25 # running times for average to compute mean and std
+    times = 5 # running times for average to compute mean and std
     numOfAlgo = 4
     color = ['k', 'b', 'g', 'r'] # plot color
     label = ['w/o FL', 'w/ FL', 'MetaFL', 'PMFL'] # plot label
@@ -63,7 +63,8 @@ def main(args):
                     l = [text_length]*(xtr.shape[0])
                     optimizer.zero_grad()
                     # pylint: disable=not-callable
-                    logits = model(xtr, torch.tensor(l)).squeeze()
+                    
+                    logits = model(xtr, torch.tensor(l)).flatten()
                     loss = criterion(logits, ytr)
                     loss.backward()
                     optimizer.step()
@@ -72,7 +73,7 @@ def main(args):
                 # compute test auc
                 with torch.no_grad():
                     l = [text_length]*(xtest.shape[0])
-                    logits_te = model(xtest, torch.tensor(l)).squeeze()
+                    logits_te = model(xtest, torch.tensor(l)).flatten()
                     # pred_q = logits_te.argmax(dim=1)
                     
                     try:
@@ -94,9 +95,9 @@ def main(args):
                 model.load_state_dict(torch.load(PATH)) # load PMFL model
                 
 
-    aucPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/02'+args.disease+'_rocauc.npy') # 03--include maml training in each round, 04-hald data
+    aucPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/01'+args.disease+'_rocauc.npy') # 03--include maml training in each round, 04-hald data
     np.save(aucPATH, auc)
-    prPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/02'+args.disease+'_prauc.npy') 
+    prPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/01'+args.disease+'_prauc.npy') 
     np.save(prPATH, pr)
     # algo = ['w/o FL', 'w/ FL', 'MetaFL', 'PMFL'] 
     x = np.arange(args.epoch_te)+1
@@ -111,7 +112,7 @@ def main(args):
     plt.xlabel('epoch')
     plt.ylabel('Test AUC')
     plt.title(args.disease) # 5 silos
-    imgPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/02'+args.disease+'_rocauc.png')
+    imgPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/01'+args.disease+'_rocauc.png')
     plt.savefig(imgPATH)
 
     fig, ax = plt.subplots()
@@ -125,7 +126,7 @@ def main(args):
     plt.xlabel('epoch')
     plt.ylabel('Test Precision')
     plt.title(args.disease) # 5 silos
-    imgPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/02'+args.disease+'_prauc.png')
+    imgPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/01'+args.disease+'_prauc.png')
     plt.savefig(imgPATH)
     # plt.show()
     
@@ -151,7 +152,7 @@ if __name__ == '__main__':
     argparser.add_argument('--algo', type=str, help='choose Federated Learning(fl), maml-Federated Learning(mfl) \
                             or Partial Meta-Federated Learning(pmfl)', default='fl')
     argparser.add_argument('--disease', type=str, help='choose target task(Atelectasis, Consolidation, LungLesion,\
-                            LungOpacity, PleuralEffusion, PleuralOther, Pneumonia, Pneumothorax)', default='Consolidation')
+                            LungOpacity, PleuralEffusion, PleuralOther, Pneumonia, Pneumothorax)', default='Pneumothorax')
 
     args = argparser.parse_args()
 

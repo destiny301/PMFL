@@ -83,7 +83,7 @@ def main(args):
             l = [text_length]*(xtr.shape[0])
             optimizer.zero_grad()
             # pylint: disable=not-callable
-            logits = testModel(xtr, torch.tensor(l)).squeeze()
+            logits = testModel(xtr, torch.tensor(l)).flatten()
             loss = criterion(logits, ytr)
             loss.backward()
             optimizer.step()
@@ -100,7 +100,7 @@ def main(args):
     with torch.no_grad():
         l = [text_length]*(xtest.shape[0])
         # pylint: disable=not-callable
-        logits_te = testModel(xtest, torch.tensor(l)).squeeze()
+        logits_te = testModel(xtest, torch.tensor(l)).flatten()
         # pred_q = logits_te.argmax(dim=1)
         try:
             auc = roc_auc_score(ytest, logits_te.cpu())

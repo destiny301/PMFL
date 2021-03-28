@@ -115,7 +115,7 @@ class PMFL(nn.Module):
             l = [self.text_length]*(xtrain.shape[0])
             # 1. run the i-th task and compute loss for k=0
             # pylint: disable=not-callable
-            logits = self.net(xtrain, torch.tensor(l)).squeeze()
+            logits = self.net(xtrain, torch.tensor(l)).flatten()
             loss = self.criterion(logits, ytrain)
             para = self.getParameters()
             grad = torch.autograd.grad(loss, para)
@@ -124,7 +124,7 @@ class PMFL(nn.Module):
 
             with torch.no_grad():
                 l = [self.text_length]*(xtest.shape[0])
-                logits_q = self.net(xtest, torch.tensor(l)).squeeze()
+                logits_q = self.net(xtest, torch.tensor(l)).flatten()
                 loss_q = self.criterion(logits_q, ytest)
                 losses_te[0] += loss_q*self.weight[i]
 
@@ -132,14 +132,14 @@ class PMFL(nn.Module):
             with torch.no_grad():
                 self.loadParameters(fast_weights, self.net)
                 l = [self.text_length]*(xtest.shape[0])
-                logits_q = self.net(xtest, torch.tensor(l)).squeeze()
+                logits_q = self.net(xtest, torch.tensor(l)).flatten()
                 loss_q = self.criterion(logits_q, ytest)
                 losses_te[1] += loss_q*self.weight[i]
 
             for k in range(1, self.epoch):
                 # 1. run the i-th task and compute loss for k=1~K-1                
                 l = [self.text_length]*(xtrain.shape[0])
-                logits = self.net(xtrain, torch.tensor(l)).squeeze()
+                logits = self.net(xtrain, torch.tensor(l)).flatten()
                 loss = self.criterion(logits, ytrain)
                 # 2. compute grad on theta_pi
                 fast_weights = self.getParameters()
@@ -149,7 +149,7 @@ class PMFL(nn.Module):
 
                 self.loadParameters(fast_weights, self.net)
                 l = [self.text_length]*(xtest.shape[0])
-                logits_q = self.net(xtest, torch.tensor(l)).squeeze()
+                logits_q = self.net(xtest, torch.tensor(l)).flatten()
                 # loss_q will be overwritten and just keep the loss_q on last update step.
                 loss_q = self.criterion(logits_q, ytest)
                 losses_te[k + 1] += loss_q*self.weight[i]
