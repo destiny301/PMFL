@@ -95,14 +95,18 @@ def main(args):
     print(precision[optimal_idx], recall[optimal_idx], thresholds[optimal_idx])
 
 
-    plt.plot(fpr, tpr, 'b', label = 'ROC')
-    plt.plot(precision, recall, 'r', label = 'Precision-Recall Curve')
-    plt.legend()
-    plt.title('ROC vs Precision-Recall Curve')
+    plt.plot(fpr, tpr)
+    # print(tpr.shape)
+    x = np.arange(tpr.shape[0])/tpr.shape[0]
+    # print(x.shape)
+    # plt.plot(precision, recall)
+    plt.plot(x, x, '--k')
+    # plt.legend()
+    plt.title('ROC')
     # plt.show()
     
             
-    imgPATH = os.path.join(folder, 'PMFL/roc_pr.png')
+    imgPATH = os.path.join(folder, 'PMFL/roc.png')
     plt.savefig(imgPATH)
 
     

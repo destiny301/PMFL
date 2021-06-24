@@ -26,15 +26,15 @@ def main(args):
     
     numOfAlgo = 4
     aucPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/05'+args.disease+'_rocauc.npy') # 03--include maml training in each round, 04-hald data
-    prPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/05'+args.disease+'_prauc.npy') 
+    # prPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/05'+args.disease+'_prauc.npy') 
     f1PATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/05'+args.disease+'_f1.npy') # 03--include maml training in each round, 04-hald data
     pPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/05'+args.disease+'_precision.npy') 
     rPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/05'+args.disease+'_recall.npy') 
     auc = np.load(aucPATH)
-    pr = np.load(prPATH)
-    f1 = np.load(aucPATH)
-    p = np.load(prPATH)
-    r = np.load(aucPATH)
+    # pr = np.load(prPATH)
+    f1 = np.load(f1PATH)
+    p = np.load(pPATH)
+    r = np.load(rPATH)
 
     color = ['k', 'b', 'g', 'r'] # plot color
     label = ['w/o FL', 'w/ FL', 'MetaFL', 'PMFL'] # plot label
@@ -55,36 +55,37 @@ def main(args):
     plt.title(args.disease) # 5 silos
     imgPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/01'+args.disease+'_rocauc.png')
     # plt.savefig(imgPATH)
-    print('-----------')
-    fig, ax = plt.subplots()
-    with sns.axes_style("darkgrid"):
-        for i in range(numOfAlgo):
-            mean = np.mean(pr[i], 0)
-            std = np.std(pr[i], 0)
-            ax.plot(x, mean, color[i], label = label[i])
-            ax.fill_between(x, mean-std, mean+std, facecolor = color[i], alpha = 0.2)
-            print("i={:d}, {:.4f}, {:.4f}".format(i+1, mean[9], std[9]))
-        ax.legend()
-    plt.xlabel('epoch')
-    plt.ylabel('Test Precision')
-    plt.title(args.disease) # 5 silos
-    imgPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/01'+args.disease+'_prauc.png')
+    # print('-----pr------')
+    # fig, ax = plt.subplots()
+    # with sns.axes_style("darkgrid"):
+    #     for i in range(numOfAlgo):
+    #         mean = np.mean(pr[i], 0)
+    #         std = np.std(pr[i], 0)
+    #         ax.plot(x, mean, color[i], label = label[i])
+    #         ax.fill_between(x, mean-std, mean+std, facecolor = color[i], alpha = 0.2)
+    #         print("i={:d}, {:.4f}, {:.4f}".format(i+1, mean[9], std[9]))
+    #     ax.legend()
+    # plt.xlabel('epoch')
+    # plt.ylabel('Test Precision')
+    # plt.title(args.disease) # 5 silos
+    # imgPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/01'+args.disease+'_prauc.png')
     # plt.savefig(imgPATH)
     # plt.show()
-    print('-----------')
-    for i in range(numOfAlgo):
-        mean = np.mean(f1[i], 0)
-        std = np.std(f1[i], 0)
-        print("i={:d}, {:.4f}, {:.4f}".format(i+1, mean[9], std[9]))
-    print('-----------')
+   
+    print('------p-----')
     for i in range(numOfAlgo):
         mean = np.mean(p[i], 0)
         std = np.std(p[i], 0)
         print("i={:d}, {:.4f}, {:.4f}".format(i+1, mean[9], std[9]))
-    print('-----------')
+    print('-----r------')
     for i in range(numOfAlgo):
         mean = np.mean(r[i], 0)
         std = np.std(r[i], 0)
+        print("i={:d}, {:.4f}, {:.4f}".format(i+1, mean[9], std[9]))
+    print('----F1-------')
+    for i in range(numOfAlgo):
+        mean = np.mean(f1[i], 0)
+        std = np.std(f1[i], 0)
         print("i={:d}, {:.4f}, {:.4f}".format(i+1, mean[9], std[9]))
     
 
@@ -109,7 +110,7 @@ if __name__ == '__main__':
     argparser.add_argument('--algo', type=str, help='choose Federated Learning(fl), maml-Federated Learning(mfl) \
                             or Partial Meta-Federated Learning(pmfl)', default='fl')
     argparser.add_argument('--disease', type=str, help='choose target task(Atelectasis, Consolidation, LungLesion,\
-                            LungOpacity, PleuralEffusion, PleuralOther, Pneumonia, Pneumothorax)', default='LungOpacity')
+                            LungOpacity, PleuralEffusion, PleuralOther, Pneumonia, Pneumothorax)', default='Pneumothorax')
 
     args = argparser.parse_args()
 

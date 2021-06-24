@@ -13,20 +13,21 @@ from sklearn.metrics import precision_score, recall_score, f1_score
 from model import Model
 from datagenerator import I2B2Dataset
 from CXRFileReader import FederatedReader
+from I2B2FileReader import I2B2Reader
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
 def main(args):
 
-    folder = '../../Dataset/mimic' # data and model path
+    folder = '../../Dataset/challenge2008/training'
     print(args)
     # pylint: disable=no-member
     # pylint: disable=not-callable
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     # read all files in the folder
-    dataset = FederatedReader(folder)
+    dataset = I2B2Reader(folder)
     lib_sz = dataset.get_lib_sz() # get the number of features, used for the first layer of model
     text_length = dataset.get_text_length()
     # transform data into silos(train and test task)
@@ -104,25 +105,25 @@ def main(args):
                 training_loss = 0.0
 
             if i == 0:
-                PATH = os.path.join(folder, 'PMFL/'+args.disease+'/model/0'+str(t%5+1)+'fl.pt')
+                PATH = os.path.join(folder, 'model/0'+str(t%5+1)+'fl.pt')
                 model.load_state_dict(torch.load(PATH)) # load FL model
             elif i == 1:
-                PATH = os.path.join(folder, 'PMFL/'+args.disease+'/model/0'+str(t%5+1)+'mfl.pt')
+                PATH = os.path.join(folder, 'model/0'+str(t%5+1)+'mfl.pt')
                 model.load_state_dict(torch.load(PATH)) # load metaFL model
             elif i == 2:
-                PATH = os.path.join(folder, 'PMFL/'+args.disease+'/model/0'+str(t%5+1)+'pmfl.pt')
+                PATH = os.path.join(folder, 'model/0'+str(t%5+1)+'pmfl.pt')
                 model.load_state_dict(torch.load(PATH)) # load PMFL model
                 
 
-    aucPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/05'+args.disease+'_rocauc.npy') # 03--include maml training in each round, 04-hald data
+    aucPATH = os.path.join(folder, 'result/01'+args.disease+'_rocauc.npy') # 03--include maml training in each round, 04-hald data
     np.save(aucPATH, auc)
     # prPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/05'+args.disease+'_prauc.npy') 
     # np.save(prPATH, pr)
-    f1PATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/05'+args.disease+'_f1.npy') 
+    f1PATH = os.path.join(folder, 'result/01'+args.disease+'_f1.npy') 
     np.save(f1PATH, f1)
-    pPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/05'+args.disease+'_precision.npy') 
+    pPATH = os.path.join(folder, 'result/01'+args.disease+'_precision.npy') 
     np.save(pPATH, p)
-    rPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/05'+args.disease+'_recall.npy') 
+    rPATH = os.path.join(folder, 'result/01'+args.disease+'_recall.npy') 
     np.save(rPATH, r)
     # algo = ['w/o FL', 'w/ FL', 'MetaFL', 'PMFL'] 
     x = np.arange(args.epoch_te)+1
@@ -137,7 +138,7 @@ def main(args):
     plt.xlabel('epoch')
     plt.ylabel('Test AUC')
     plt.title(args.disease) # 5 silos
-    imgPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/05'+args.disease+'_rocauc.png')
+    imgPATH = os.path.join(folder, 'result/02'+args.disease+'_rocauc.png')
     plt.savefig(imgPATH)
 
     # fig, ax = plt.subplots()
@@ -160,7 +161,7 @@ if __name__ == '__main__':
 
     argparser = argparse.ArgumentParser()
     # argparser.add_argument('--epoch', type=int, help='epoch number', default=10)
-    argparser.add_argument('--epoch_te', type=int, help='epoch number for test task', default=10)
+    argparser.add_argument('--epoch_te', type=int, help='epoch number for test task', default=8)
 
     argparser.add_argument('--n_way', type=int, help='n way', default=2)
     # argparser.add_argument('--k_tr', type=int, help='k shot for train set', default=10)
