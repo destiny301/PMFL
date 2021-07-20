@@ -10,28 +10,27 @@ from torch import nn
 from sklearn.metrics import roc_auc_score, auc, roc_curve
 from sklearn.metrics import average_precision_score, precision_recall_curve
 from sklearn.metrics import precision_score, recall_score, f1_score
-from model import Model
+from metamodel import Model
 from datagenerator import I2B2Dataset
-from CXRFileReader import FederatedReader
-from I2B2FileReader import I2B2Reader
+from EICUFileReader import EICUReader
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
 def main(args):
 
-    folder = '../../datasets/challenge2008/training'
+    folder = '../../datasets/eicu'
     print(args)
     # pylint: disable=no-member
     # pylint: disable=not-callable
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     # read all files in the folder
-    dataset = I2B2Reader(folder)
+    dataset = EICUReader(folder)
     lib_sz = dataset.get_lib_sz() # get the number of features, used for the first layer of model
-    text_length = dataset.get_text_length()
+    text_length = 0
     # transform data into silos(train and test task)
-    xte, yte = dataset.getTest(args.disease)
+    xte, yte, clste = dataset.getTest(args.disease)
 
     # generate dataset for model training
     db_test = I2B2Dataset(xte, yte, ratio = args.ratio, mode = 'test') # for test task, choose the latter half for test data, and ratio for training data
@@ -105,25 +104,25 @@ def main(args):
                 training_loss = 0.0
 
             if i == 0:
-                PATH = os.path.join(folder, 'model/1obefl.pt')
+                PATH = os.path.join(folder, 'model/3fl.pt')
                 model.load_state_dict(torch.load(PATH)) # load FL model
             elif i == 1:
-                PATH = os.path.join(folder, 'model/1obemfl.pt')
+                PATH = os.path.join(folder, 'model/3mfl.pt')
                 model.load_state_dict(torch.load(PATH)) # load metaFL model
             elif i == 2:
-                PATH = os.path.join(folder, 'model/1obepmfl.pt')
+                PATH = os.path.join(folder, 'model/3pmfl.pt')
                 model.load_state_dict(torch.load(PATH)) # load PMFL model
                 
 
-    aucPATH = os.path.join(folder, 'result/04auc.npy') # 03--include maml training in each round, 04-hald data
+    aucPATH = os.path.join(folder, 'result/04'+args.disease+'_rocauc.npy') # 03--include maml training in each round, 04-hald data
     np.save(aucPATH, auc)
     # prPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/05'+args.disease+'_prauc.npy') 
     # np.save(prPATH, pr)
-    f1PATH = os.path.join(folder, 'result/04f1.npy') 
+    f1PATH = os.path.join(folder, 'result/04'+args.disease+'_f1.npy') 
     np.save(f1PATH, f1)
-    pPATH = os.path.join(folder, 'result/04precision.npy') 
+    pPATH = os.path.join(folder, 'result/04'+args.disease+'_precision.npy') 
     np.save(pPATH, p)
-    rPATH = os.path.join(folder, 'result/04recall.npy') 
+    rPATH = os.path.join(folder, 'result/04'+args.disease+'_recall.npy') 
     np.save(rPATH, r)
     # algo = ['w/o FL', 'w/ FL', 'MetaFL', 'PMFL'] 
     x = np.arange(args.epoch_te)+1
@@ -137,8 +136,8 @@ def main(args):
         ax.legend()
     plt.xlabel('epoch')
     plt.ylabel('Test AUC')
-    plt.title('I2B2') # 5 silos
-    imgPATH = os.path.join(folder, 'result/04obeauc.png')
+    plt.title('EICU') # 5 silos
+    imgPATH = os.path.join(folder, 'result/04auc.png')
     plt.savefig(imgPATH)
 
     # fig, ax = plt.subplots()
@@ -154,18 +153,18 @@ def main(args):
     # plt.title(args.disease) # 5 silos
     # imgPATH = os.path.join(folder, 'PMFL/'+args.disease+'/result/01'+args.disease+'_prauc.png')
     # plt.savefig(imgPATH)
-    # plt.show()
+    plt.show()
     
 
 if __name__ == '__main__':
 
     argparser = argparse.ArgumentParser()
     # argparser.add_argument('--epoch', type=int, help='epoch number', default=10)
-    argparser.add_argument('--epoch_te', type=int, help='epoch number for test task', default=15)
+    argparser.add_argument('--epoch_te', type=int, help='epoch number for test task', default=7)
 
     argparser.add_argument('--n_way', type=int, help='n way', default=2)
     # argparser.add_argument('--k_tr', type=int, help='k shot for train set', default=10)
-    argparser.add_argument('--k_te', type=int, help='k shot for test set', default=64)
+    argparser.add_argument('--k_te', type=int, help='k shot for test set', default=128)
     argparser.add_argument('--meta_lr', type=float, help='meta-level learning rate', default=1e-3)
     argparser.add_argument('--update_lr', type=float, help='learning rate', default=0.01)
 

@@ -1,5 +1,5 @@
 # Atelectasis samples too many, need run alone(out of memory)
 
-python main01.py --algo fl
-python main01.py --algo mfl
-python main01.py --algo pmfl
+python main_i2b2.py --algo fl
+python main_i2b2.py --algo mfl
+python main_i2b2.py --algo pmfl

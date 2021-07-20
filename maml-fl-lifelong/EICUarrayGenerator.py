@@ -2,14 +2,14 @@ import os
 import numpy as np
 import pandas as pd
 
-root = '../../Dataset/eicu'
+root = '../../datasets/eicu'
 
 drugspath = os.path.join(root, 'admissionDrug.csv')
 patientspath = os.path.join(root, 'patient.csv')
 
 drugsdata = pd.read_csv(drugspath, usecols=['patientunitstayid', 'drugname'])
 patientsdata = pd.read_csv(patientspath, usecols=['patientunitstayid', 'gender', 'age', 'hospitaldischargeoffset', 'unitdischargeoffset', 'hospitaldischargestatus', 
-                                                'hospitaldischargelocation', 'unittype', 'unitstaytype'])
+                                                'hospitaldischargelocation', 'unittype', 'unitstaytype', 'unitdischargelocation', 'unitdischargestatus'])
 print(drugsdata.head(5))
 print(patientsdata.head(5))
 print(len(drugsdata.iloc[:, 0]))
@@ -46,20 +46,62 @@ print(alltypes)
 allstaytypes = list(set(patientsdata.iloc[:, 7])) # 4
 print(len(allstaytypes))
 print(allstaytypes)
+alluloc = list(set(patientsdata.iloc[:, 9])) # 
+print(len(alluloc))
+print(alluloc)
+allustatus = list(set(patientsdata.iloc[:, 10])) # 
+print(len(allustatus))
+print(allustatus)
 
-doffset = patientsdata.iloc[:, 3] # <=3000, <=10000, 
-uoffset = patientsdata.iloc[:, 8] # <=0, <=5000, 
-print(np.mean(doffset), np.median(doffset))
-print(np.mean(uoffset), np.median(uoffset))
-print(np.min(doffset), np.max(doffset))
-print(np.min(uoffset), np.max(uoffset))
+doffset = patientsdata.iloc[:, 3] # <=2880
+uoffset = patientsdata.iloc[:, 8] # <=1440
+# print(np.mean(doffset), np.median(doffset))
+# print(np.mean(uoffset), np.median(uoffset))
+# print(np.min(doffset), np.max(doffset))
+# print(np.min(uoffset), np.max(uoffset))
+
+# print(np.count_nonzero(patientsdata.iloc[:, 3] < 7200))
+# print(np.count_nonzero(patientsdata.iloc[:, 3] >= 7200))
+# print(np.count_nonzero(patientsdata.iloc[:, 8] < 2880))
+# print(np.count_nonzero(patientsdata.iloc[:, 8] >= 2880))
+# print(np.count_nonzero(patientsdata.iloc[:, 4] == 'Other hospital'))
+# print(np.count_nonzero(patientsdata.iloc[:, 6] == 'CTICU'))
+# print(np.count_nonzero(patientsdata.iloc[:, 6] == 'MICU'))
+# print(np.count_nonzero(patientsdata.iloc[:, 6] == 'CCU-CTICU'))
+# print(np.count_nonzero(patientsdata.iloc[:, 4] == 'Home'))
+# print(np.count_nonzero(patientsdata.iloc[:, 9] == 'Step-Down Unit (SDU)'))
+# print(np.count_nonzero(patientsdata.iloc[:, 9] == 'Other Hospital'))
+# print(np.count_nonzero(patientsdata.iloc[:, 9] == 'Other ICU'))
+# print(np.count_nonzero(patientsdata.iloc[:, 9] == 'Home'))
+# print(np.count_nonzero(patientsdata.iloc[:, 9] == 'Operating Room'))
+# print(np.count_nonzero(patientsdata.iloc[:, 9] == 'Nursing Home'))
+# print(np.count_nonzero(patientsdata.iloc[:, 9] == 'Acute Care/Floor'))
+# print(np.count_nonzero(patientsdata.iloc[:, 9] == 'Other ICU (CABG)'))
+# print(np.count_nonzero(patientsdata.iloc[:, 9] == 'Other'))
+# print(np.count_nonzero(patientsdata.iloc[:, 9] == 'Death'))
+print(np.count_nonzero(patientsdata.iloc[:, 9] == 'Floor'))
+print(np.count_nonzero(patientsdata.iloc[:, 9] != 'Floor'))
+# print(np.count_nonzero(patientsdata.iloc[:, 9] == 'Rehabilitation'))
+# print(np.count_nonzero(patientsdata.iloc[:, 9] == 'Telemetry'))
+# print(np.count_nonzero(patientsdata.iloc[:, 9] == 'Skilled Nursing Facility'))
+# print(np.count_nonzero(patientsdata.iloc[:, 9] == 'Other Internal'))
+# print(np.count_nonzero(patientsdata.iloc[:, 9] == 'ICU'))
+# print(np.count_nonzero(patientsdata.iloc[:, 9] == 'Other External'))
+print(np.count_nonzero(patientsdata.iloc[:, 10] == 'Alive'))
+print(np.count_nonzero(patientsdata.iloc[:, 10] != 'Alive'))
+# print(np.count_nonzero(patientsdata.iloc[:, 7] == 'transfer'))
+# print(np.count_nonzero(patientsdata.iloc[:, 7] == 'admit'))
+print(allstatus)
+print(alllocations)
+print(alltypes)
+print(allstaytypes)
 
 print("generate array!")
 # generate data and label array
 data = np.zeros((len(allpatientIDs), len(allDrugs)+2))
 print(np.shape(data))
 
-label = np.zeros((len(allpatientIDs), 6))
+label = np.zeros((len(allpatientIDs), 8))
 print(np.shape(label))
 
 print(len(drugsdata))
@@ -81,26 +123,44 @@ for i in range(len(patientsdata)):
             data[indexofID][-2] = 2
         data[indexofID][-1] = allage.index(patientsdata.iloc[i, 2])
 
-        if patientsdata.iloc[i, 3] <= 4000:
-            label[indexofID][0] = 0
-        elif patientsdata.iloc[i, 3] <=10000:
+        if patientsdata.iloc[i, 3] > 7200:
             label[indexofID][0] = 1
-        else:
-            label[indexofID][0] = 2
+        # elif patientsdata.iloc[i, 3] <=10000:
+        #     label[indexofID][0] = 1
+        # else:
+        #     label[indexofID][0] = 2
         
-        if patientsdata.iloc[i, 8] <= 2000:
-            label[indexofID][1] = 0
-        elif patientsdata.iloc[i, 8] <=5000:
+        if patientsdata.iloc[i, 8] > 2880:
             label[indexofID][1] = 1
-        else:
-            label[indexofID][1] = 2
-        label[indexofID][2] = allstatus.index(patientsdata.iloc[i, 5])
-        label[indexofID][3] = alllocations.index(patientsdata.iloc[i, 4])
-        label[indexofID][4] = alltypes.index(patientsdata.iloc[i, 6])
-        label[indexofID][5] = allstaytypes.index(patientsdata.iloc[i, 7])
+        # elif patientsdata.iloc[i, 8] <=5000:
+        #     label[indexofID][1] = 1
+        # else:
+        #     label[indexofID][1] = 2
+
+        if patientsdata.iloc[i, 5] == 'Alive':
+            label[indexofID][2] = 1
+
+        if patientsdata.iloc[i, 4] == 'Home':
+            label[indexofID][3] = 1
+
+        if patientsdata.iloc[i, 6] == 'Med-Surg ICU':
+            label[indexofID][4] = 1
+
+        if patientsdata.iloc[i, 7] == 'admit':
+            label[indexofID][5] = 1
+
+        if patientsdata.iloc[i, 9] == 'Floor':
+            label[indexofID][6] = 1
+        
+        if patientsdata.iloc[i, 10] == 'Alive':
+            label[indexofID][7] = 1
+        # label[indexofID][2] = allstatus.index(patientsdata.iloc[i, 5])
+        # label[indexofID][3] = alllocations.index(patientsdata.iloc[i, 4])
+        # label[indexofID][4] = alltypes.index(patientsdata.iloc[i, 6])
+        # label[indexofID][5] = allstaytypes.index(patientsdata.iloc[i, 7])
 
 print("save as file")
-outputpath = os.path.join(root, 'data.npz')
+outputpath = os.path.join(root, 'data2.npz')
 np.savez(outputpath, data)
-outputpath = os.path.join(root, 'label.npz')
+outputpath = os.path.join(root, 'label2.npz')
 np.savez(outputpath, label)

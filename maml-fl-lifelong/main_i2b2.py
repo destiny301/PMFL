@@ -19,8 +19,8 @@ import os
 
 def main(args):
     # folder = '../../Dataset/mimic'
-    folder = '../../Dataset/challenge2008/training'
-    PATH = os.path.join(folder, 'model/15'+args.algo+'.pt')
+    folder = '../../datasets/challenge2008/training'
+    PATH = os.path.join(folder, 'model/1obe'+args.algo+'.pt')
     # PATH = os.path.join(folder, args.disease+'/model/05'+args.algo+'.pt')
 
     # torch.manual_seed(111)
@@ -28,7 +28,7 @@ def main(args):
     # np.random.seed(111)
     print(args)
     # pylint: disable=no-member
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 
     # read all files in the folder
     print("=============Start Files Reading============")
@@ -40,7 +40,7 @@ def main(args):
     # xte, yte = dataset.getOriginSplit()
     # dataset.split2save()
     xte, yte = dataset.getTest(args.disease)
-    xte, yte = dataset.gettestdata()
+    # xte, yte = dataset.gettestdata()
     print("test shape", xte.shape, yte.shape)
     x_silos, y_silos = dataset.getTrain(args.n_silo, args.disease)
     # xte, yte = dataset.getSilos(1, 'test')
@@ -70,22 +70,22 @@ def main(args):
     print('Total trainable tensors:', num)
 
     # start training train tasks
-    # print("===========Train training tasks==========")
-    # for step in range(args.n_step):
-    #     # print('--------------Round {}---------------'.format(step+1))
-    #     losses = 0.0
-    #     for bn in range(args.n_batch):
-    #         x = xtr[bn]
-    #         y = ytr[bn]
-    #         loss = trainModel(x, y)
-    #         losses += loss.item()
-    #     print('round:', step+1, '\ttraining loss:', losses/args.n_batch)
-    # torch.save(trainModel.getState(), PATH)
+    print("===========Train training tasks==========")
+    for step in range(args.n_step):
+        # print('--------------Round {}---------------'.format(step+1))
+        losses = 0.0
+        for bn in range(args.n_batch):
+            x = xtr[bn]
+            y = ytr[bn]
+            loss = trainModel(x, y)
+            losses += loss.item()
+        print('round:', step+1, '\ttraining loss:', losses/args.n_batch)
+    torch.save(trainModel.getState(), PATH)
 
     print("===========Train New Task===========")
     # trainModel.loadModel(trainModel.getCopy(), testModel)'model01.pt'
     # testModel.load_state_dict(torch.load(PATH))
-    # testModel.load_state_dict(trainModel.getState())
+    testModel.load_state_dict(trainModel.getState())
     training_loss = 0.0
     xtest, ytest = db_test.get_testdata()
     xtest, ytest = torch.from_numpy(xtest).to(device), torch.from_numpy(ytest).float()
@@ -93,7 +93,7 @@ def main(args):
     auc = 0.0
 
     for epoch in range(args.epoch_te):
-        db_t = DataLoader(db_test, args.k_te, shuffle=True, num_workers=1, pin_memory=True)
+        db_t = DataLoader(db_test, args.k_te, shuffle=True, num_workers=1, pin_memory=False)
         for xtr, ytr in db_t:
             xtr, ytr = xtr.to(device), ytr.float().to(device)
             l = [text_length]*(xtr.shape[0])
@@ -128,7 +128,7 @@ if __name__ == '__main__':
 
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--epoch', type=int, help='epoch number', default=20)
-    argparser.add_argument('--epoch_te', type=int, help='epoch number for test task', default=20)
+    argparser.add_argument('--epoch_te', type=int, help='epoch number for test task', default=15)
 
     argparser.add_argument('--n_way', type=int, help='n way', default=2)
     # argparser.add_argument('--k_tr', type=int, help='k shot for train set', default=10)
@@ -137,8 +137,8 @@ if __name__ == '__main__':
     argparser.add_argument('--update_lr', type=float, help='learning rate', default=0.01)
 
     # federated learning
-    argparser.add_argument('--n_silo', type=int, help='num of data sources', default=3)
-    argparser.add_argument('--n_batch', type=int, help='num of batches', default=5)
+    argparser.add_argument('--n_silo', type=int, help='num of data sources', default=5)
+    argparser.add_argument('--n_batch', type=int, help='num of batches', default=20)
     argparser.add_argument('--n_step', type=int, help='num of all sources ave update', default=20)
     argparser.add_argument('--ratio', type=float, help='ratio of training data in test silo', default=0.8)
     # maml or part-freeze maml

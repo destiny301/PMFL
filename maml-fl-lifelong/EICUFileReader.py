@@ -16,8 +16,8 @@ class EICUReader():
 
     def __init__(self, root):
 
-        self.data = np.load(os.path.join(root, 'data.npz'), allow_pickle=True)['arr_0'].astype(np.int64)
-        self.label = np.load(os.path.join(root, 'label.npz'), allow_pickle=True)['arr_0'].astype(np.int64)
+        self.data = np.load(os.path.join(root, 'data2.npz'), allow_pickle=True)['arr_0'].astype(np.int64)
+        self.label = np.load(os.path.join(root, 'label2.npz'), allow_pickle=True)['arr_0'].astype(np.int64)
 
         # self.testsetpath = os.path.join('.../../Dataset/mimic/Pneumothorax', 'test.npz')
         # self.trainsetpath = os.path.join('../../Dataset/mimic/Pneumothorax', 'train.npz')
@@ -132,35 +132,54 @@ class EICUReader():
 
 
     def testdata(self):
-        return self.tensor, self.label[:, 5]
+        return self.tensor, self.label[:, 6]
     def split2save(self):
         x_silos = []
         y_silos = []
         classes = [0, 1, 2, 3, 4, 5] # desease class 16 has no patients
         # selected_cls = np.random.choice(classes, n_silo, False)
-        selected_cls = [0, 1, 2, 3, 4, 5]
+        selected_cls = [2, 7, 5, 3]
+        # x_cls = self.label[:, 0]
+        # print(np.count_nonzero(x_cls == 0), np.count_nonzero(x_cls == 1))
+        # x_cls = self.label[:, 1]
+        # print(np.count_nonzero(x_cls == 0), np.count_nonzero(x_cls == 1))
+        x_cls = self.label[:, 2]
+        print(np.count_nonzero(x_cls == 0), np.count_nonzero(x_cls == 1))
+        x_cls = self.label[:, 3]
+        print(np.count_nonzero(x_cls == 0), np.count_nonzero(x_cls == 1))
+        # x_cls = self.label[:, 4]
+        # print(np.count_nonzero(x_cls == 0), np.count_nonzero(x_cls == 1))
+        x_cls = self.label[:, 5]
+        print(np.count_nonzero(x_cls == 0), np.count_nonzero(x_cls == 1))
+        # x_cls = self.label[:, 6]
+        # print(np.count_nonzero(x_cls == 0), np.count_nonzero(x_cls == 1))
+        x_cls = self.label[:, 7]
+        print(np.count_nonzero(x_cls == 0), np.count_nonzero(x_cls == 1))
         for cur_class in selected_cls:
             x_silo = []
             y_silo = []
-            x_silo = self.tensor[(self.tensor.shape[0]//6)*cur_class:self.tensor.shape[0]//6*(cur_class+1)]
-            y_silo = self.label[self.tensor.shape[0]//6*cur_class:self.tensor.shape[0]//6*(cur_class+1), cur_class]
-            # for index,labels in enumerate(self.label):
-            #     if labels[cur_class] == 1 and self.tag[index] == -1:
-            #         x_silo.append(self.tensor[index])
-            #         y_silo.append(1)
-            #         self.tag[index] = cur_class
-            # class_sz = len(y_silo)*2
-            # for index,labels in enumerate(self.label):
-            #     if labels[cur_class] == 0 and self.tag[index] == -1:
-            #         x_silo.append(self.tensor[index])
-            #         y_silo.append(0)
-            #         self.tag[index] = cur_class
-            #     if len(y_silo) == class_sz:
-            #         break
+            # x_silo = self.tensor[(self.tensor.shape[0]//6)*cur_class:self.tensor.shape[0]//6*(cur_class+1)]
+            # y_silo = self.label[self.tensor.shape[0]//6*cur_class:self.tensor.shape[0]//6*(cur_class+1), cur_class]
+            for index,labels in enumerate(self.label):
+                if labels[cur_class] == 0 and self.tag[index] == -1:
+                    x_silo.append(self.tensor[index])
+                    y_silo.append(0)
+                    self.tag[index] = cur_class
+                if len(y_silo) > 3000:
+                    break
 
-            # x_silo, y_silo = shuffle(x_silo, y_silo)
-            # x_silo = np.array(x_silo).astype(np.int64)
-            # y_silo = np.array(y_silo).astype(np.int64)
+            class_sz = len(y_silo)*2
+            for index,labels in enumerate(self.label):
+                if labels[cur_class] == 1 and self.tag[index] == -1:
+                    x_silo.append(self.tensor[index])
+                    y_silo.append(1)
+                    self.tag[index] = cur_class
+                if len(y_silo) == class_sz:
+                    break
+
+            x_silo, y_silo = shuffle(x_silo, y_silo)
+            x_silo = np.array(x_silo).astype(np.float32)
+            y_silo = np.array(y_silo).astype(np.int64)
             x_silos.append(x_silo)
             y_silos.append(y_silo)
             print('num of classes:\t', len(set(y_silo)))
@@ -184,8 +203,8 @@ class EICUReader():
             'Pneumothorax':[6, 0, 1, 3, 5]}
 
         # selected_cls = dd[disease]
-        selected_cls = [2, 0, 1]
-        n_cls = [3, 3, 3]
+        selected_cls = [3, 1, 2]
+        n_cls = [2, 2, 2]
         if os.path.exists(self.datasilospath):
             dataset = np.load(self.datasilospath, allow_pickle=True)
             x_silos = dataset['x'][selected_cls]
@@ -206,8 +225,8 @@ class EICUReader():
             'Pneumothorax':2}
 
         # selected_cls = dd[disease]
-        selected_cls = 5
-        n_cls = 4
+        selected_cls = 0
+        n_cls = 2
         if os.path.exists(self.datasilospath):
             dataset = np.load(self.datasilospath, allow_pickle=True)
             x_silos = dataset['x'][selected_cls]

@@ -12,12 +12,13 @@ class Model(nn.Module):
         super(Model, self).__init__()
         self.fc1 = nn.Linear(lib_sz, 128)
         self.fc2 = nn.Linear(128, 16)
-        self.fc = nn.Linear(16, nclass)
-        self.act = nn.Softmax()
+        self.fc = nn.Linear(16, 1)
+        # self.act = nn.Softmax()
+        self.act = nn.Sigmoid()
 
     def forward(self, x, length):
         # print('input shape:', x.shape)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = self.fc(x)
+        x = self.act(self.fc(x))
         return x

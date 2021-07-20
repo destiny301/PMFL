@@ -15,7 +15,8 @@ class I2B2Reader():
     def __init__(self, root):
 
         self.path = root
-        folder = '../../Dataset/challenge2008/test'
+        folder = '../../datasets/challenge2008/training'
+        # folder = '../../datasets/challenge2008/test'
         datafolder = os.path.join(root, 'notes')
         labelfolder = os.path.join(root, 'labels')
         datasetpath = os.path.join(root, 'mimicDataset.npz')
@@ -29,7 +30,7 @@ class I2B2Reader():
         
         deseases = ['Asthma', 'CAD', 'CHF', 'Depression', 'Diabetes', 'GERD', 'Gallstones',
                     'Gout', 'Hypercholesterolemia', 'Hypertension', 'Hypertriglyceridemia',
-                    'OA', 'OSA', 'Obesity', 'PVD', 'Venous Insufficiency']
+                    'OA', 'OSA', 'Obesity', 'PVD', 'Venous Insufficiency'] # 5, 7, 8, 9, 10, 13(obesity)
 
         if os.path.exists(datasetpath):
             dataset = np.load(datasetpath, allow_pickle=True)
@@ -206,7 +207,7 @@ class I2B2Reader():
         y_silos = []
         classes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15]  # desease class 16 has no patients
         # selected_cls = np.random.choice(classes, n_silo, False)
-        selected_cls = [13, 12, 14, 2, 9]
+        selected_cls = [10, 13, 7, 5, 8, 9]
         limit = 80
         r = 2
         for cur_class in selected_cls:
@@ -221,7 +222,7 @@ class I2B2Reader():
                     limit = 400
                     r = 2
                 else:
-                    limit = 80
+                    limit = 200
                     r = 2
                 if len(y_silo) >= limit:
                     break
@@ -257,7 +258,7 @@ class I2B2Reader():
         #     'Pneumonia':[6, 0, 7, 2, 5],
         #     'Pneumothorax':[6, 0, 1, 3, 5]}
 
-        selected_cls = [1, 3, 4]
+        selected_cls = [0, 2, 3, 4, 5]
 
         if os.path.exists(self.datasilospath):
             dataset = np.load(self.datasilospath, allow_pickle=True)
@@ -278,7 +279,7 @@ class I2B2Reader():
         #     'Pneumonia':4,
         #     'Pneumothorax':2}
 
-        selected_cls = 0
+        selected_cls = 1
         if os.path.exists(self.datasilospath):
             dataset = np.load(self.datasilospath, allow_pickle=True)
             x_silos = dataset['x'][selected_cls]
