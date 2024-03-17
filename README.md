@@ -14,7 +14,7 @@ Federated machine learning is a versatile and flexible tool to utilize distribut
 - w/ FL: with traditional Federated Learning algorithm pretraining
 - MetaFL: with metaFL algorithm(the combination of meta-learning and federated learning) pretraining
 - PMFL: freeze part(like, 50%) parameters of the model when training metaFL
-4. run 5 times, and show the mean and std in the images
+3. run 5 times, and show the mean and std in the images
 
 ## Results
 
