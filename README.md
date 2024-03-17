@@ -20,7 +20,7 @@ Federated machine learning is a versatile and flexible tool to utilize distribut
 
 ### Evaluate Pneumonia
 
-![iamge](https://github.com/destiny301/PMFL/blob/main/result/01Pneumonia_rocauc.png)
+<img src="https://github.com/destiny301/PMFL/blob/main/result/01Pneumonia_rocauc.png" width="400">
 
 ## Citation
 If you use PMFL in your research or wish to refer to the results published here, please use the following BibTeX entry. Sincerely appreciate it!
